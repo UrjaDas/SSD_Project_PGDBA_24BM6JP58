@@ -1,0 +1,1050 @@
+---
+title: "SSD_Project_PGDBA"
+output: pdf_document
+date: "2024-12-04"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+### Install Packages and Load Libraries
+```{r}
+install.packages("e1071")
+```
+
+```{r}
+library(e1071)
+```
+```{r}
+library(patchwork)
+```
+```{r}
+library(ggplot2)
+```
+
+```{r}
+install.packages("reshape2")
+```
+
+
+```{r}
+library(reshape2)
+```
+
+```{r}
+library(tidyr)
+```
+
+### Read the Dataset-1
+```{r cars}
+original_dataset <- read.csv('C:\\Users\\ishid\\Downloads\\ISI_PGDBA\\SSD\\SSD_Project\\ObesityDataSet_raw_and_data_sinthetic.csv')
+```
+
+###------------------------------ Data Preprocessing For Dataset-1------------------------------------
+### Consider 500 rows of the original dataset for further analysis
+```{r}
+dataset1 <- original_dataset[1:498,]
+```
+
+```{r}
+tail(dataset1)
+```
+
+```{r}
+# Convert the float column to integer
+dataset1$FAF <- as.integer(dataset1$FAF)
+```
+
+##----------------------------------DATA OVERVIEW-----------------------------------------------------
+
+### View the entire dataset
+```{r}
+view_dataset <- function(df, dataset) {
+  cat("The", dataset, "can be viewed.")
+  View(df)
+}
+view_dataset(dataset1, "Obesity Estimation Dataset")
+
+```
+
+
+### Data Description 
+```{r}
+data_description <- function(df, dataset) {
+ cat("Following is the result of the dataframe",dataset,":", "\n" )
+ str(df)
+ cat("Number of observations:", nrow(df), "\n")
+ cat("Number of features:", ncol(df), "\n")
+}
+```
+
+```{r}
+
+data_description(dataset1, "Obesity Estimation (Dataset-1)")
+```
+
+
+### Summary Statistics of Dataset
+```{r}
+summary_data <- function(df,dataset) {
+  cat("Summary of the dataframe",dataset,":", "\n" )
+  print(summary(df))
+  print(head(df))# First 6 rows
+  
+}
+```
+
+```{r}
+summary_data(dataset1, "Obesity Estimation (Dataset-1)")
+```
+
+
+### Check Missing Values
+```{r}
+check_missing_value <- function(df, dataset){
+  cat("Check Missing values in the dataset",dataset,":", "\n" )
+  colSums(is.na(df))      # Missing values per column
+}
+```
+
+
+```{r}
+check_missing_value(dataset1, "Obesity Estimation (Dataset-1)")
+```
+
+##-----------------------------------SUMMARY STATISTICS----------------------------------------------
+```{r}
+summary_statistics <- function(column, feature){
+  
+  cat("Following are the summmary statistics of the variable",feature,":", "\n")
+  mean_value <- mean(column)
+  cat("Mean:", mean_value, "\n")
+  
+  median_value <- median(column) 
+  cat("Median:", median_value, "\n")
+  
+  std_value <- sd(column)
+  cat("Standard Deviation:", std_value, "\n")
+  
+  min_value <- min(column)
+  cat("Minimum:", min_value, "\n")
+  
+  max_value <- max(column)
+  cat("Maximum:", max_value, "\n")
+}
+```
+
+
+```{r}
+summary_statistics(dataset1$Weight, "Weight")
+```
+
+```{r}
+summary_statistics(dataset1$Height, "Height")
+```
+
+```{r}
+summary_statistics(dataset1$Age, "Age")
+
+```
+
+
+##----------------------------VISUALIZATIONS-----------------------------------------------------------
+```{r}
+
+boxplot_visualisation <- function(df, feature) {
+  ggplot(data = df, aes(y = .data[[feature]])) +
+    geom_boxplot(fill = "skyblue", color = "darkblue", outlier.color = "red", outlier.shape = 8, width = 0.5) +
+    labs(title = paste("Boxplot of", feature), 
+         y = "Value", 
+         x = feature) +
+    theme_minimal(base_size = 14) +  # Increases font size
+    theme(
+      plot.title = element_text(hjust = 0.5, face = "bold", color = "darkblue"),  # Center-aligned title
+      axis.title = element_text(face = "bold", color = "darkblue"),  # Bold axis titles
+      axis.text = element_text(color = "darkgray")  # Subtle axis text
+    )
+}
+
+```
+
+
+```{r}
+
+boxplot_visualisation(dataset1, "Weight")
+
+```
+
+### Histogram and Shape of the data
+```{r}
+histogram_visualisation <- function(df, feature){
+  skew <- skewness(df[[feature]], na.rm=TRUE)
+  shape <- if (abs(skew) < 0.5) {
+    "Approximately Symmetric"
+  } else if (skew > 0.5) {
+    "Positively Skewed (Right-Skewed)"
+  } else {
+    "Negatively Skewed (Left-Skewed)"
+  }
+  
+  # Create histogram with KDE
+  histogram_plot <- ggplot(data = df, aes(x = .data[[feature]])) +
+    geom_histogram(aes(y = ..density..),  # Set y to density for KDE
+                   binwidth = (max(df[[feature]], na.rm = TRUE) - min(df[[feature]], na.rm = TRUE)) / 30,fill = "skyblue", color = "darkblue", alpha = 0.7) +
+    geom_density(color = "red", size = 1) +  # Add KDE in red
+    labs(title = paste("Histogram and KDE of", feature), 
+         x = feature, 
+         y = "Density") +
+    theme_minimal(base_size = 14) +
+    theme(
+      plot.title = element_text(hjust = 0.5, face = "bold", color = "darkblue"),
+      axis.title = element_text(face = "bold", color = "darkblue"),
+      axis.text = element_text(color = "darkgray")
+    )
+  
+  # Print plot and description
+  print(histogram_plot)
+  cat("The distribution of", feature, "is", shape, "with a skewness value of", round(skew, 2), ".\n")
+}
+```
+
+
+```{r}
+histogram_visualisation(dataset1, "Weight")
+```
+### Barplot of Categorical Variable
+
+```{r}
+categorical_barplot <- function(df, variable_name) {
+  # Convert the chosen variable to a factor
+  chosen_categorical <- as.factor(df[[variable_name]])
+  
+  # Create the frequency table
+  freq_table <- table(chosen_categorical)
+  
+  # Adjust margins for rotated labels
+  par(mar = c(7, 4, 4, 2))  # Increase bottom margin for rotated labels
+  
+  # Create the bar plot without x-labels
+  bar_positions <- barplot(freq_table, 
+                           main = paste("Bar Plot of Number of", paste("'", variable_name, "'", sep = "")),
+                           col = "lightblue", 
+                           border = "darkblue", 
+                           xaxt = "n",  # Suppress x-axis labels for manual rotation
+                           cex.names = 0.5)
+  
+  # Add rotated x-labels at 45 degrees
+  text(x = bar_positions, 
+       y = -10,  # Position below bars
+       labels = names(freq_table), 
+       srt = 0,  # Rotate labels by 45 degrees
+       adj = 1,  # Align text to the bar
+       xpd = TRUE,  # Allow drawing outside plot region
+       cex = 0.7)  # Adjust size of category names
+  
+  # Add x-axis title
+  mtext(side = 1, text = variable_name, line = 5, col = "darkblue", cex = 0.9)
+  
+  # Add y-axis title
+  mtext(side = 2, text = "Frequency", line = 2.5, col = "darkblue", cex = 0.9)
+}
+```
+
+```{r}
+
+categorical_barplot(dataset1, "NObeyesdad")
+```
+
+###--------------------------CORRELATION BETWEEN VARIABLES--------------------------------------------
+```{r}
+find_correlation <- function(df, variable1, variable2) {
+  # Calculate the Pearson correlation coefficient
+  correlation_coefficient <- cor(df[[variable1]], df[[variable2]], method = "pearson")
+  
+  cat("The Pearson Correlation Coefficient between", variable1, "and", variable2, ":", correlation_coefficient)
+}
+```
+
+```{r}
+
+find_correlation(dataset1, "Weight", "Height")
+```
+
+### --------------------------------CORRELATION MATRIX-----------------------------------------------
+```{r}
+
+# Function to find and visualize the correlation matrix as a heatmap with annotations
+find_correlation_heatmap <- function(df) {
+  # Select only numerical columns
+  numerical_data <- df[sapply(df, is.numeric)]
+  
+  # Calculate the correlation matrix
+  correlation_matrix <- cor(numerical_data, method = "pearson")
+  
+  # Convert the correlation matrix to a tidy format
+  melted_correlation <- as.data.frame(as.table(correlation_matrix))
+  
+  # Create a heatmap with annotations
+  heatmap_plot <- ggplot(melted_correlation, aes(Var1, Var2, fill = Freq)) +
+    geom_tile(color = "white") +  # Create tiles
+    scale_fill_gradient2(low = "blue", high = "red", mid = "white", 
+                         midpoint = 0, limit = c(-1, 1), 
+                         name="Correlation") +  # Color gradient
+    geom_text(aes(label = round(Freq, 2)), color = "black") +  # Add correlation values
+    theme_minimal(base_size = 14) +  # Minimal theme
+    theme(axis.text.x = element_text(angle = 45, hjust = 1)) +  # Rotate x labels
+    labs(title = "Correlation Heatmap", x = "", y = "")  # Add title and labels
+  
+  # Print the heatmap
+  print(heatmap_plot)
+  return(correlation_matrix)
+}
+```
+
+
+```{r}
+
+correlation_results <- find_correlation_heatmap(dataset1)
+
+```
+
+
+###------------------------SCATTERPLOT AND TREND LINE------------------------------------------------
+```{r}
+
+scatter_plot_with_trend <- function(df, variable1, variable2) {
+  # Create the scatter plot with a trend line
+  ggplot(data = df, aes_string(x = variable1, y = variable2)) +
+    geom_point(color = "blue", alpha = 0.7) +  # Points
+    geom_smooth(method = "lm", color = "red", se = FALSE) +  # Trend line
+    labs(title = paste("Scatter Plot of", variable1, "vs", variable2),
+         x = variable1,
+         y = variable2) +
+    theme_minimal(base_size = 14) +
+    theme(
+      plot.title = element_text(hjust = 0.5, face = "bold", color = "darkblue"),
+      axis.title = element_text(face = "bold", color = "darkblue"),
+      axis.text = element_text(color = "darkgray")
+    )
+}
+```
+
+```{r}
+scatter_plot_with_trend(dataset1, "Weight", "Height")
+
+```
+### Convert Categorical and Numerical (Discrete) Variables to factors for using them while doing multiple Linear Regression:
+```{r}
+convert_to_factor <- function(df, variable_name) {
+  
+  # Check the class of the variable
+  variable <- df[[variable_name]]
+  
+  if (is.character(variable) || is.numeric(variable) && !is.factor(variable)) {
+    # Convert to factor
+    df[[variable_name]] <- as.factor(variable)
+    cat(paste(variable_name, "has been converted to a factor.\n"))
+  } else if (is.factor(variable)) {
+    cat(paste(variable_name, "is already a factor.\n"))
+  } else {
+    cat(paste(variable_name, "is neither categorical nor numeric.\n"))
+  }
+  
+  return(df)
+}
+```
+
+```{r}
+
+columns_to_convert <- c("Gender", "family_history_with_overweight", "FAVC", 
+                         "CAEC", "SMOKE", "SCC", "CALC", "MTRANS", "NObeyesdad")
+
+# Loop through each column and convert
+for (column in columns_to_convert) {
+  dataset1 <- convert_to_factor(dataset1, column)
+}
+```
+
+
+
+###---------------------------------------MULTIPLE REGRESSION----------------------------------------
+```{r}
+multiple_regression <- function(df, target, ...) {
+  # Create a formula for the regression model using the target and independent variables
+  independent_vars <- as.list(substitute(c(...))) [-1]  # Capture the independent variables
+  formula <- as.formula(paste(target, "~", paste(sapply(independent_vars, deparse), collapse = "+")))
+  
+  # Fit the linear regression model
+  linear_model <- lm(formula, data = df)
+  
+  # Display the summary of the model
+  model_summary <- summary(linear_model)
+  print(model_summary)
+  
+  return(linear_model)
+}
+
+```
+
+
+```{r}
+regression <- multiple_regression(dataset1, "Weight", Height, Age, family_history_with_overweight, Gender, FAVC, CAEC, SMOKE, SCC, CALC, MTRANS, NObeyesdad, FAF)
+print(regression)
+
+```
+### ---------------------------------DIAGNOSTIC PLOTS------------------------------------------------
+```{r}
+diagnostic_plot <- function(lm_model) {
+  par(mfrow = c(2,2))  # Arrange plots in a 2x2 grid
+  plot(lm_model)
+  
+  # Reset plotting layout
+  par(mfrow = c(1, 1))
+}
+
+```
+
+```{r}
+diagnostic_plot(regression)
+```
+
+
+```{r}
+# Function for diagnostic plots with better aesthetics
+diagnostic_plot_beautify <- function(lm_model) {
+  
+  # Extract residuals, fitted values, and other diagnostics
+  residuals <- resid(lm_model)
+  fitted_values <- fitted(lm_model)
+  leverage <- hatvalues(lm_model)
+  cooks_distance <- cooks.distance(lm_model)
+  
+  # 1. Residuals vs Fitted
+  p1 <- ggplot(data = NULL, aes(x = fitted_values, y = residuals)) +
+    geom_point(color = "blue", alpha = 0.6) +
+    geom_hline(yintercept = 0, color = "red", linetype = "dashed") +
+    labs(title = "Residuals vs Fitted",
+         x = "Fitted Values",
+         y = "Residuals") +
+    theme_minimal(base_size = 14) +
+    theme(plot.title = element_text(hjust = 0.5, face = "bold", color = "darkblue"))
+  
+  # 2. Normal Q-Q Plot
+  qq_data <- data.frame(
+    theoretical = qqnorm(residuals, plot.it = FALSE)$x,
+    sample = qqnorm(residuals, plot.it = FALSE)$y
+  )
+  p2 <- ggplot(qq_data, aes(x = theoretical, y = sample)) +
+    geom_point(color = "blue", alpha = 0.6) +
+    geom_abline(slope = 1, intercept = 0, color = "red", linetype = "dashed") +
+    labs(title = "Normal Q-Q Plot",
+         x = "Theoretical Quantiles",
+         y = "Sample Quantiles") +
+    theme_minimal(base_size = 14) +
+    theme(plot.title = element_text(hjust = 0.5, face = "bold", color = "darkblue"))
+  
+  # 3. Scale-Location Plot
+  p3 <- ggplot(data = NULL, aes(x = fitted_values, y = sqrt(abs(residuals)))) +
+    geom_point(color = "blue", alpha = 0.6) +
+    labs(title = "Scale-Location Plot",
+         x = "Fitted Values",
+         y = "√|Residuals|") +
+    theme_minimal(base_size = 14) +
+    theme(plot.title = element_text(hjust = 0.5, face = "bold", color = "darkblue"))
+  
+  # 4. Residuals vs Leverage
+  p4 <- ggplot(data = NULL, aes(x = leverage, y = residuals)) +
+    geom_point(color = "blue", alpha = 0.6) +
+    geom_hline(yintercept = 0, color = "red", linetype = "dashed") +
+    geom_smooth(method = "loess", color = "darkblue", se = FALSE) +
+    labs(title = "Residuals vs Leverage",
+         x = "Leverage",
+         y = "Residuals") +
+    theme_minimal(base_size = 14) +
+    theme(plot.title = element_text(hjust = 0.5, face = "bold", color = "darkblue"))
+  
+  # Combine the plots using patchwork
+  combined_plot <- (p1 | p2) / (p3 | p4)
+  print(combined_plot)
+}
+```
+
+```{r}
+
+diagnostic_plot_beautify(regression)
+
+```
+
+### -----------------------------------------PCA------------------------------------------------------
+```{r}
+pca_implementation <- function(df) {
+  # Find out the numerical variables
+  numerical_data <- df[sapply(df, is.numeric)]
+  
+  #Standardize the data
+  scaled_data <- scale(numerical_data)
+  
+  #Perform PCA
+  pca_model <-prcomp(scaled_data, center = TRUE, scale. = TRUE)
+  
+  #Calculate Explained Variance
+  explained_variance <- pca_model$sdev^2 / sum(pca_model$sdev^2) * 100
+  cumulative_variance <- cumsum(explained_variance)
+  
+  # Create a data frame for plotting
+  variance_df <- data.frame(
+    Component = seq_along(explained_variance),
+    ExplainedVariance = explained_variance,
+    CumulativeVariance = cumulative_variance
+  )
+  
+  # Scree plot: explained variance
+  p1 <- ggplot(variance_df, aes(x = Component, y = ExplainedVariance)) +
+    geom_line(color = "darkblue", size = 1) +
+    geom_point(color = "red", size = 2) +
+    labs(title = "Scree Plot (Explained Variance by Principal Components)",
+         x = "Principal Component",
+         y = "Explained Variance (%)") +
+    theme_minimal(base_size = 10) +
+    theme(plot.title = element_text(hjust = 0.5, face = "bold", color = "darkblue"))
+  
+  # Scree plot: cumulative variance
+  p2 <- ggplot(variance_df, aes(x = Component, y = CumulativeVariance)) +
+    geom_line(color = "darkblue", size = 1) +
+    geom_point(color = "red", size = 2) +
+    labs(title = "Cumulative Variance by Principal Components",
+         x = "Principal Component",
+         y = "Cumulative Variance (%)") +
+    theme_minimal(base_size = 14) +
+    theme(plot.title = element_text(hjust = 0.5, face = "bold", color = "darkblue"))
+  
+  # Display the plots
+  print(p1)
+  print(p2)
+  
+  # Return PCA model and variance data
+  return(list(
+    pca_model = pca_model,
+    explained_variance = explained_variance,
+    cumulative_variance = cumulative_variance
+  ))
+}
+```
+
+```{r}
+pca_result <- pca_implementation(dataset1)
+
+```
+
+
+```{r}
+print(summary(pca_result))
+print(pca_result$x)  # Principal component scores
+print(pca_result$rotation)  # Loadings
+
+```
+###------------------------------BIPLOT VISUALISATION------------------------------------------------
+
+```{r}
+
+# Function to plot the biplot
+pca_biplot <- function(pca_model, dataset_name = "Dataset", cex = 0.7) {
+  par(cex = cex)  # Adjust text size for the plot
+  
+  # Biplot to visualize the PCA results
+  biplot(pca_model, scale = 0, 
+         main = paste("Biplot of PCA for", dataset_name),
+         col = c("blue", "red"))  # Data points in blue, arrows in red
+  
+  # Extract and print loadings (correlations between variables and components)
+  loadings <- pca_model$rotation
+  cat("Loadings for the first two principal components:\n")
+  print(round(loadings[, 1:2], 3))  # Rounded for better readability
+  
+  # Reset plot parameters to default
+  par(cex = 1)
+}
+```
+
+```{r}
+
+# Using the previous PCA implementation's result
+# Assume pca_result is the output from the previous pca_implementation
+pca_model <- pca_result$pca_model
+```
+
+
+```{r}
+
+# Plot the biplot
+pca_biplot(pca_model, "Dataset1", 0.7)
+
+```
+
+###---------------------------------------------------------------------------------------------------
+###---------------------------------------------------------------------------------------------------
+###-------------------------------DATASET-2 ANALYSIS AND IMPLEMETATION-------------------------------
+
+```{r}
+dataset2 <- read.csv('C:\\Users\\ishid\\Downloads\\ISI_PGDBA\\SSD\\SSD_Project\\Wholesale customers data.csv')
+```
+
+```{r}
+head(dataset2)
+```
+
+
+```{r}
+tail(dataset2)
+```
+### View the entire dataset
+```{r}
+view_dataset(dataset2, "Wholesale Customers Dataset")
+
+```
+
+
+### Data Description 
+```{r}
+
+data_description(dataset2, "Wholesale Customers Dataset (Dataset-2)")
+```
+
+### Print the Summary of the Data
+```{r}
+summary_data(dataset2, "Wholesale Customers Dataset (Dataset-2)")
+```
+
+### Check Missing Values
+```{r}
+check_missing_value(dataset2, "Dataset-2")
+``` 
+
+##---------------------SUMMARY STATISTICS OF A FEW CONTINUOUS VARIABLES------------------------------
+```{r}
+summary_statistics(dataset2$Milk, "Milk")
+```
+
+
+```{r}
+summary_statistics(dataset2$Grocery, "Grocery")
+```
+
+
+```{r}
+summary_statistics(dataset2$Frozen, "Frozen")
+```
+
+```{r}
+summary_statistics(dataset2$Fresh, "Fresh")
+```
+##----------------------------VISUALIZATIONS-----------------------------------------------------------
+```{r}
+
+boxplot_visualisation(dataset2, "Grocery")
+```
+
+
+```{r}
+
+boxplot_visualisation(dataset2, "Milk")
+```
+
+
+```{r}
+
+boxplot_visualisation(dataset2, "Fresh")
+```
+
+### Histogram and Shape of the Grocery Feature
+```{r}
+histogram_visualisation(dataset2, "Grocery")
+```
+
+
+```{r}
+histogram_visualisation(dataset2, "Milk")
+```
+### Barplot of the Categorical Variable ('Region')
+```{r}
+categorical_barplot(dataset2, "Region")
+```
+
+###--------------------------CORRELATION BETWEEN VARIABLES-------------------------------------------
+```{r}
+find_correlation(dataset2, "Grocery", "Milk")
+```
+
+### CORRELATION MATRIX 
+```{r}
+correlation_results2 <- find_correlation_heatmap(dataset2)
+```
+
+### SCATTERPLOT
+```{r}
+scatter_plot_with_trend(dataset2, "Grocery", "Milk")
+```
+
+### Multiple Linear Regression
+```{r}
+regression2 <- multiple_regression(dataset2, "Grocery", Milk, Fresh, Frozen, Channel, Region, Detergents_Paper, Delicassen)
+
+print(regression2)
+
+```
+
+
+```{r}
+
+diagnostic_plot_beautify(regression2)
+
+```
+
+
+```{r}
+pca_result2 <- pca_implementation(dataset2)
+
+```
+
+
+```{r}
+print(summary(pca_result2))
+print(pca_result2$x)  # Principal component scores
+print(pca_result2$rotation)  # Loadings
+
+```
+
+```{r}
+
+# Using the previous PCA implementation's result
+# Assume pca_result2 is the output from the previous pca_implementation
+pca_model2 <- pca_result2$pca_model
+```
+
+```{r}
+
+# Plot the biplot
+pca_biplot(pca_model2, "Dataset2", 0.7)
+
+```
+###---------------------------------------------------------------------------------------------------
+###---------------------------------------------------------------------------------------------------
+###-------------------------------DATASET-3 ANALYSIS AND IMPLEMETATION-------------------------------
+
+```{r}
+dataset3 <- airquality
+```
+
+
+```{r}
+head(dataset3)
+```
+```{r}
+tail(dataset3)
+```
+
+### View the dataset-3
+```{r}
+view_dataset(dataset3, "Air-Quality")
+```
+### Data Description
+```{r}
+data_description(dataset3, "Air-Quality")
+```
+### Print the Summary of the Data
+```{r}
+summary_data(dataset3, "Air-Quality")
+```
+```{r}
+unique(dataset3$Month)
+```
+
+### Check Missing Values
+```{r}
+check_missing_value(dataset3, "dataset3")
+``` 
+### Remove rows corresponding to missing values
+```{r}
+dataset3 <- na.omit(dataset3)
+```
+
+### Check if Missing Values are still present
+```{r}
+check_missing_value(dataset3, "dataset3")
+``` 
+
+##---------------------SUMMARY STATISTICS OF A FEW CONTINUOUS VARIABLES------------------------------
+```{r}
+summary_statistics(dataset3$Temp, "Temp")
+```
+
+
+```{r}
+summary_statistics(dataset3$Wind, "Wind")
+```
+
+
+```{r}
+summary_statistics(dataset3$Solar.R, "Solar.R")
+```
+
+```{r}
+summary_statistics(dataset3$Ozone, "Ozone")
+```
+##----------------------------VISUALIZATIONS----------------------------------------------------------
+```{r}
+
+boxplot_visualisation(dataset3, "Temp")
+```
+
+
+```{r}
+
+boxplot_visualisation(dataset3, "Wind")
+```
+
+
+```{r}
+
+boxplot_visualisation(dataset3, "Solar.R")
+```
+
+### Histogram and Shape of the Temp Feature
+```{r}
+histogram_visualisation(dataset3, "Temp")
+```
+
+
+```{r}
+histogram_visualisation(dataset3, "Ozone")
+```
+### Barplot of the Categorical Variable ('Month')
+```{r}
+categorical_barplot(dataset3, "Month")
+```
+
+###--------------------------CORRELATION BETWEEN VARIABLES-------------------------------------------
+```{r}
+find_correlation(dataset3, "Temp", "Ozone")
+```
+
+### CORRELATION MATRIX 
+```{r}
+correlation_results3 <- find_correlation_heatmap(dataset3)
+```
+
+### SCATTERPLOT
+```{r}
+scatter_plot_with_trend(dataset3, "Temp", "Ozone")
+```
+
+### Multiple Linear Regression On Variable 'Temp' Using Other Variables
+```{r}
+regression3 <- multiple_regression(dataset3, "Temp", Ozone, Solar.R, Wind, Month, Day)
+
+print(regression3)
+
+```
+
+###--------------------------------DIAGNOSTIC PLOTS--------------------------------------------------
+```{r}
+
+diagnostic_plot_beautify(regression3)
+
+```
+###---------------------------------IMPLEMENTING PCA------------------------------------------------
+
+```{r}
+pca_result3 <- pca_implementation(dataset3)
+
+```
+
+
+```{r}
+print(summary(pca_result3))
+print(pca_result3$x)  # Principal component scores
+print(pca_result3$rotation)  # Loadings
+
+```
+
+```{r}
+
+# Using the previous PCA implementation's result
+# Assume pca_result is the output from the previous pca_implementation
+pca_model3 <- pca_result3$pca_model
+```
+
+```{r}
+
+# Plot the biplot
+pca_biplot(pca_model3, "Dataset3", 0.7)
+
+```
+###---------------------------------------------------------------------------------------------------
+###---------------------------------------------------------------------------------------------------
+###-------------------------------DATASET-4 ANALYSIS AND IMPLEMETATION-------------------------------
+
+```{r}
+dataset4 <- read.csv('C:\\Users\\ishid\\Downloads\\ISI_PGDBA\\SSD\\SSD_Project\\tips.csv')
+```
+
+```{r}
+head(dataset4)
+
+```
+
+```{r}
+tail(dataset4)
+
+```
+### View the entire dataset
+```{r}
+view_dataset(dataset4, "Tips Dataset")
+
+```
+
+
+### Data Description 
+```{r}
+
+data_description(dataset4, "Tips Dataset (Dataset-4)")
+```
+
+### Print the Summary of the Data
+```{r}
+summary_data(dataset4, "Tips Dataset (Dataset-4)")
+```
+
+### Check Missing Values
+```{r}
+check_missing_value(dataset4, "Dataset-4")
+``` 
+
+
+##---------------------SUMMARY STATISTICS OF A FEW CONTINUOUS VARIABLES------------------------------
+```{r}
+summary_statistics(dataset4$total_bill, "total_bill")
+```
+
+
+```{r}
+summary_statistics(dataset4$tip, "tip")
+```
+```{r}
+summary_statistics(dataset4$size, "size")
+```
+##----------------------------VISUALIZATIONS---------------------------------------------------------
+```{r}
+
+boxplot_visualisation(dataset4, "total_bill")
+```
+
+
+```{r}
+
+boxplot_visualisation(dataset4, "tip")
+```
+
+
+### Histogram and Shape of the Numerical Features
+```{r}
+histogram_visualisation(dataset4, "total_bill")
+```
+
+
+```{r}
+histogram_visualisation(dataset4, "tip")
+```
+### Barplot of the Categorical Variables
+```{r}
+categorical_barplot(dataset4, "sex")
+```
+
+
+```{r}
+categorical_barplot(dataset4, "time")
+```
+
+
+```{r}
+categorical_barplot(dataset4, "day")
+```
+
+###--------------------------CORRELATION BETWEEN VARIABLES-------------------------------------------
+```{r}
+find_correlation(dataset4, "tip", "total_bill")
+```
+
+### CORRELATION MATRIX 
+```{r}
+correlation_results4 <- find_correlation_heatmap(dataset4)
+```
+
+### SCATTERPLOT
+```{r}
+scatter_plot_with_trend(dataset4, "total_bill", "tip")
+```
+### Convert Categorical Variables to factors for use during Linear Regression
+```{r}
+
+columns_to_convert <- c("sex", "smoker", "day", "time")
+
+# Loop through each column and convert
+for (column in columns_to_convert) {
+  dataset4 <- convert_to_factor(dataset4, column)
+}
+```
+
+```{r}
+head(dataset4)
+```
+
+### Multiple Linear Regression
+```{r}
+regression4 <- multiple_regression(dataset4, "total_bill", tip, sex, smoker, day, time, size)
+
+print(regression4)
+
+```
+### Diagonostic Plots
+
+```{r}
+
+diagnostic_plot_beautify(regression4)
+
+```
+
+
+```{r}
+pca_result4 <- pca_implementation(dataset4)
+
+```
+
+
+```{r}
+print(summary(pca_result4))
+print(pca_result4$x)  # Principal component scores
+print(pca_result4$rotation)  # Loadings
+
+```
+
+```{r}
+
+# Using the previous PCA implementation's result
+# Assume pca_result4 is the output from the previous pca_implementation
+pca_model4 <- pca_result4$pca_model
+```
+
+```{r}
+
+# Plot the biplot
+pca_biplot(pca_model4, "Dataset4", 0.7)
+
+```
