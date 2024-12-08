@@ -23,8 +23,33 @@ install.packages("e1071")
 library(e1071)
 ```
 ```{r}
+# Install ggplot2 for data visualization
+install.packages("ggplot2")
+
+```
+
+```{r}
+# Install tidyr for data tidying
+install.packages("tidyr")
+```
+
+```{r}
+# Install patchwork for combining ggplot2 plots
+install.packages("patchwork")
+```
+
+```{r}
+install.packages("tidyverse")
+```
+
+```{r}
+library(tidyverse)
+```
+
+```{r}
 library(patchwork)
 ```
+
 ```{r}
 library(ggplot2)
 ```
